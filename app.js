@@ -8,6 +8,7 @@ import {
   PostController,
   UploadsController,
   ItemsController,
+  CommentsController,
 } from "./controllers/index.js"
 
 mongoose
@@ -31,6 +32,7 @@ app.use("/upload", UploadsController)
 app.use("/posts", PostController)
 app.use("/auth", UserController)
 app.use("/items", ItemsController)
+app.use("/comments", CommentsController)
 
 app.listen(PORT, (err) => {
   if (err) console.log(err)

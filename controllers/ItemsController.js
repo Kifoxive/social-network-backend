@@ -9,7 +9,7 @@ class ItemsController {
     try {
       const doc = new ItemModel({
         title: req.body.title,
-        description: req.body.description,
+        text: req.body.text,
         imageUrl: req.body.imageUrl,
         tags: req.body.tags,
         user: req.userId,
@@ -27,22 +27,26 @@ class ItemsController {
     }
   }
 
-  async getAll(req, res) {
-    try {
-      const items = await ItemModel.find().populate("user").exec()
-      res.json(items)
-    } catch (err) {
-      console.log(err)
-      res.status(500).json({
-        message: "Failed to get items",
-      })
-    }
-  }
+  // async getAll(req, res) {
+  //   try {
+  //     const items = await ItemModel.find().populate("user").exec()
+  //     res.json(items)
+  //   } catch (err) {
+  //     console.log(err)
+  //     res.status(500).json({
+  //       message: "Failed to get items",
+  //     })
+  //   }
+  // }
+
+  // async getComments()
 
   async getMine(req, res) {
     const userId = req.userId
     try {
-      const items = await ItemModel.find({ user: userId }).exec()
+      const items = await ItemModel.find({ user: userId })
+        .populate("user")
+        .exec()
       res.json(items)
     } catch (err) {
       console.log(err)
@@ -67,16 +71,18 @@ class ItemsController {
               message: "Failed to get the item",
             })
           }
-
           if (!doc) {
             return res.status(404).json({
               message: "The item did not found",
             })
           }
 
-          res.json(doc)
+          const { comments, ...rest } = doc._doc
+          res.json({ ...rest, commentsLength: comments.length })
         }
-      ).populate("user")
+      )
+        // .select( "-comments")
+        .populate("user")
     } catch (err) {
       console.log(err)
       res.status(500).json({
@@ -153,7 +159,7 @@ router.post(
   handleValidationErrors,
   routerController.create
 )
-router.get("/", routerController.getAll)
+// router.get("/", routerController.getAll)
 // it is important to include getMine before getOne
 router.get("/mine", checkAuth, routerController.getMine)
 router.get("/:id", routerController.getOne)

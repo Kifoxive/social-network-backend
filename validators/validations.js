@@ -39,7 +39,7 @@ export const itemCreateValidation = [
       min: 3,
     })
     .isString(),
-  body("description", "the description length must be 3 symbols long")
+  body("text", "the text length must be 3 symbols long")
     .isLength({
       min: 3,
     })
@@ -48,4 +48,13 @@ export const itemCreateValidation = [
   body("imageUrl", "bad image link").optional().isString(),
   body("price", "bad price number").isNumeric(),
   body("currency", "bad currency format").isString(),
+]
+
+export const commentCreateValidation = [
+  body("text", "the text length must be 3 symbols long")
+    .isLength({
+      min: 3,
+    })
+    .isString(),
+  body("likes", "bad likes format").optional().isNumeric(),
 ]
