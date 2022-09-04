@@ -24,6 +24,15 @@ const PostSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    items: [
+      {
+        item: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Item",
+          required: true,
+        },
+      },
+    ],
     imageUrl: String,
   },
   {
@@ -31,4 +40,5 @@ const PostSchema = new mongoose.Schema(
   }
 )
 
-export default mongoose.model("Post", PostSchema)
+const PostModel = mongoose.model("Post", PostSchema)
+export default PostModel

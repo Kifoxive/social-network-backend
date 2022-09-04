@@ -29,8 +29,9 @@ export const postCreateValidation = [
       min: 3,
     })
     .isString(),
-  body("tags", "bad tags format").optional().isString(),
+  body("tags", "bad tags format").optional().isArray(),
   body("imageUrl ", "bad image link").optional().isString(),
+  body("items", "bad items format").optional().isArray(),
 ]
 
 export const itemCreateValidation = [
@@ -48,6 +49,7 @@ export const itemCreateValidation = [
   body("imageUrl", "bad image link").optional().isString(),
   body("price", "bad price number").isNumeric(),
   body("currency", "bad currency format").isString(),
+  body("comments", "bad comments format").optional().isNumeric(),
 ]
 
 export const commentCreateValidation = [

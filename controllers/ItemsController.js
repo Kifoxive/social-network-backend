@@ -16,7 +16,6 @@ class ItemsController {
         price: req.body.price,
         currency: req.body.currency,
       })
-
       const item = await doc.save()
       res.json(item)
     } catch (err) {
@@ -39,8 +38,6 @@ class ItemsController {
   //   }
   // }
 
-  // async getComments()
-
   async getMine(req, res) {
     const userId = req.userId
     try {
@@ -59,7 +56,6 @@ class ItemsController {
   async getOne(req, res) {
     try {
       const itemId = req.params.id
-
       ItemModel.findOne(
         {
           _id: itemId,
@@ -76,13 +72,9 @@ class ItemsController {
               message: "The item did not found",
             })
           }
-
-          const { comments, ...rest } = doc._doc
-          res.json({ ...rest, commentsLength: comments.length })
+          res.json(doc)
         }
-      )
-        // .select( "-comments")
-        .populate("user")
+      ).populate("user")
     } catch (err) {
       console.log(err)
       res.status(500).json({
@@ -104,7 +96,6 @@ class ItemsController {
           imageUrl: req.body.imageUrl,
           tags: req.body.tags,
           user: req.userId,
-          comments: req.body.comments,
         }
       )
       res.json({ _id: itemId })
@@ -143,7 +134,7 @@ class ItemsController {
     } catch (err) {
       console.log(err)
       res.status(500).json({
-        message: "Failed to get the item",
+        message: "Failed to remove the item",
       })
     }
   }

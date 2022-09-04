@@ -11,8 +11,11 @@ class PostController {
         title: req.body.title,
         text: req.body.text,
         imageUrl: req.body.imageUrl,
-        tags: req.body.tags.split(","),
+        tags: req.body.tags,
         user: req.userId,
+        // items: req.body.items.map((item) => {
+        //   return { item: item }
+        // }),
       })
 
       const post = await doc.save()
@@ -22,6 +25,19 @@ class PostController {
       res.status(500).json({
         message: "Failed to create post",
       })
+    }
+  }
+
+  async getMine(req, res) {
+    try {
+      const userId = req.userId
+      const items = await PostModel.find({ user: userId })
+        .populate("user")
+        .exec()
+      res.json(items)
+    } catch (err) {
+      console.log(err)
+      res.status(500).json({ message: "failed to get posts" })
     }
   }
 
@@ -66,10 +82,11 @@ class PostController {
               message: "The post did not found",
             })
           }
-
           res.json(doc)
         }
-      ).populate("user")
+      )
+        .populate("user")
+        .populate("items.item")
     } catch (err) {
       console.log(err)
       res.status(500).json({
@@ -89,8 +106,11 @@ class PostController {
           title: req.body.title,
           text: req.body.text,
           imageUrl: req.body.imageUrl,
-          tags: req.body.tags.split(","),
+          tags: req.body.tags,
           user: req.userId,
+          // items: req.body.items.map((item) => {
+          //   return { item: item }
+          // }),
         }
       )
       // res.json({ success: true })
@@ -117,20 +137,18 @@ class PostController {
               message: "Failed to delete the post ",
             })
           }
-
           if (!doc) {
             return res.status(404).json({
               message: "The post did not found",
             })
           }
-
           res.json({ success: true })
         }
       )
     } catch (err) {
       console.log(err)
       res.status(500).json({
-        message: "Failed to get the post",
+        message: "Failed to remove the post",
       })
     }
   }
@@ -147,6 +165,8 @@ router.post(
   routerController.create
 )
 router.get("/", routerController.getAll)
+// it is important to include getMine before getOne
+router.get("/mine", checkAuth, routerController.getMine)
 router.get("/:id", routerController.getOne)
 router.patch(
   "/:id",

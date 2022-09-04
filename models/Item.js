@@ -21,9 +21,9 @@ const ModelSchema = new mongoose.Schema(
       required: true,
     },
     imageUrl: String,
-    comments: {
-      type: Array,
-      default: [],
+    commentsCount: {
+      type: Number,
+      default: 0,
     },
     price: {
       type: Number,
@@ -39,4 +39,5 @@ const ModelSchema = new mongoose.Schema(
   }
 )
 
-export default mongoose.model("Item", ModelSchema)
+const ItemModel = mongoose.model("Item", ModelSchema)
+export default ItemModel
