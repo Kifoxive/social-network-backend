@@ -24,11 +24,15 @@ const PostSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    items: [
+    selectedItems: [
       {
         item: {
           type: mongoose.Schema.Types.ObjectId,
           ref: "Item",
+          required: true,
+        },
+        title: {
+          type: String,
           required: true,
         },
       },

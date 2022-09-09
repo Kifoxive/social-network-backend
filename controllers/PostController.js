@@ -13,9 +13,9 @@ class PostController {
         imageUrl: req.body.imageUrl,
         tags: req.body.tags,
         user: req.userId,
-        // items: req.body.items.map((item) => {
-        //   return { item: item }
-        // }),
+        selectedItems: req.body.selectedItems.map(([id, title]) => {
+          return { item: id, title }
+        }),
       })
 
       const post = await doc.save()
@@ -86,7 +86,7 @@ class PostController {
         }
       )
         .populate("user")
-        .populate("items.item")
+        .populate("selectedItems.item")
     } catch (err) {
       console.log(err)
       res.status(500).json({
@@ -108,12 +108,11 @@ class PostController {
           imageUrl: req.body.imageUrl,
           tags: req.body.tags,
           user: req.userId,
-          // items: req.body.items.map((item) => {
-          //   return { item: item }
-          // }),
+          selectedItems: req.body.selectedItems.map(([id, title]) => {
+            return { item: id, title }
+          }),
         }
       )
-      // res.json({ success: true })
       res.json({ _id: postId })
     } catch (err) {
       console.log(err)

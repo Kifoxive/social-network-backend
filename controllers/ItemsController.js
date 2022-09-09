@@ -44,7 +44,7 @@ class ItemsController {
       const items = await ItemModel.find({ user: userId })
         .populate("user")
         .exec()
-      res.json(items)
+      res.json({ items })
     } catch (err) {
       console.log(err)
       res.status(500).json({

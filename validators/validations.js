@@ -31,7 +31,7 @@ export const postCreateValidation = [
     .isString(),
   body("tags", "bad tags format").optional().isArray(),
   body("imageUrl ", "bad image link").optional().isString(),
-  body("items", "bad items format").optional().isArray(),
+  body("selectedItems", "bad items format").isArray(),
 ]
 
 export const itemCreateValidation = [
