@@ -1,13 +1,13 @@
 import express from "express"
 
-import ItemModel from "../models/Item.js"
-import { itemCreateValidation } from "../validators/validations.js"
+import ProductModel from "../models/Product.js"
+import { productCreateValidation } from "../validators/validations.js"
 import { checkAuth, handleValidationErrors } from "../utils/index.js"
 
-class ItemsController {
+class ProductsController {
   async create(req, res) {
     try {
-      const doc = new ItemModel({
+      const doc = new ProductModel({
         title: req.body.title,
         text: req.body.text,
         imageUrl: req.body.imageUrl,
@@ -16,24 +16,24 @@ class ItemsController {
         price: req.body.price,
         currency: req.body.currency,
       })
-      const item = await doc.save()
-      res.json(item)
+      const product = await doc.save()
+      res.json(product)
     } catch (err) {
       console.log(err)
       res.status(500).json({
-        message: "Failed to create item",
+        message: "Failed to create product",
       })
     }
   }
 
   // async getAll(req, res) {
   //   try {
-  //     const items = await ItemModel.find().populate("user").exec()
-  //     res.json(items)
+  //     const products = await ProductModel.find().populate("user").exec()
+  //     res.json(products)
   //   } catch (err) {
   //     console.log(err)
   //     res.status(500).json({
-  //       message: "Failed to get items",
+  //       message: "Failed to get products",
   //     })
   //   }
   // }
@@ -41,35 +41,35 @@ class ItemsController {
   async getMine(req, res) {
     const userId = req.userId
     try {
-      const items = await ItemModel.find({ user: userId })
+      const products = await ProductModel.find({ user: userId })
         .populate("user")
         .exec()
-      res.json({ items })
+      res.json({ products })
     } catch (err) {
       console.log(err)
       res.status(500).json({
-        message: "Failed to get items",
+        message: "Failed to get products",
       })
     }
   }
 
   async getOne(req, res) {
     try {
-      const itemId = req.params.id
-      ItemModel.findOne(
+      const productId = req.params.id
+      ProductModel.findOne(
         {
-          _id: itemId,
+          _id: productId,
         },
         (err, doc) => {
           if (err) {
             console.log(err)
             return res.status(500).json({
-              message: "Failed to get the item",
+              message: "Failed to get the product",
             })
           }
           if (!doc) {
             return res.status(404).json({
-              message: "The item did not found",
+              message: "The product did not found",
             })
           }
           res.json(doc)
@@ -78,17 +78,17 @@ class ItemsController {
     } catch (err) {
       console.log(err)
       res.status(500).json({
-        message: "Failed to get the item",
+        message: "Failed to get the product",
       })
     }
   }
 
   async update(req, res) {
     try {
-      const itemId = req.params.id
-      await ItemModel.updateOne(
+      const productId = req.params.id
+      await ProductModel.updateOne(
         {
-          _id: itemId,
+          _id: productId,
         },
         {
           title: req.body.title,
@@ -98,33 +98,33 @@ class ItemsController {
           user: req.userId,
         }
       )
-      res.json({ _id: itemId })
+      res.json({ _id: productId })
     } catch (err) {
       console.log(err)
       res.status(500).json({
-        message: "Failed to update the item",
+        message: "Failed to update the product",
       })
     }
   }
 
   async remove(req, res) {
     try {
-      const itemId = req.params.id
-      ItemModel.findOneAndDelete(
+      const productId = req.params.id
+      ProductModel.findOneAndDelete(
         {
-          _id: itemId,
+          _id: productId,
         },
         (err, doc) => {
           if (err) {
             console.log(err)
             return res.status(500).json({
-              message: "Failed to delete the item ",
+              message: "Failed to delete the product ",
             })
           }
 
           if (!doc) {
             return res.status(404).json({
-              message: "The item did not found",
+              message: "The product did not found",
             })
           }
 
@@ -134,19 +134,19 @@ class ItemsController {
     } catch (err) {
       console.log(err)
       res.status(500).json({
-        message: "Failed to remove the item",
+        message: "Failed to remove the product",
       })
     }
   }
 }
 
-const routerController = new ItemsController()
+const routerController = new ProductsController()
 const router = express.Router()
 
 router.post(
   "/",
   checkAuth,
-  itemCreateValidation,
+  productCreateValidation,
   handleValidationErrors,
   routerController.create
 )
@@ -157,7 +157,7 @@ router.get("/:id", routerController.getOne)
 router.patch(
   "/:id",
   checkAuth,
-  itemCreateValidation,
+  productCreateValidation,
   handleValidationErrors,
   routerController.update
 )

@@ -7,7 +7,7 @@ import {
   UserController,
   PostController,
   UploadsController,
-  ItemsController,
+  ProductsController,
   CommentsController,
 } from "./controllers/index.js"
 
@@ -31,7 +31,7 @@ app.get("/", (req, res) => {
 app.use("/upload", UploadsController)
 app.use("/posts", PostController)
 app.use("/auth", UserController)
-app.use("/items", ItemsController)
+app.use("/products", ProductsController)
 app.use("/comments", CommentsController)
 
 app.listen(PORT, (err) => {

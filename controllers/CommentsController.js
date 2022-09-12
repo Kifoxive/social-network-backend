@@ -1,7 +1,7 @@
 import express from "express"
 
 import CommentModel from "../models/Comment.js"
-import ItemModel from "../models/Item.js"
+import ProductModel from "../models/Product.js"
 import checkAuth from "../utils/checkAuth.js"
 import handleValidationErrors from "../utils/handleValidationErrors.js"
 import { commentCreateValidation } from "../validators/validations.js"
@@ -12,12 +12,12 @@ class CommentsController {
       const doc = new CommentModel({
         text: req.body.text,
         user: req.userId,
-        item: req.body.item,
+        product: req.body.product,
       })
 
-      await ItemModel.updateOne(
+      await ProductModel.updateOne(
         {
-          _id: req.body.item,
+          _id: req.body.product,
         },
         {
           $inc: {
@@ -38,15 +38,15 @@ class CommentsController {
 
   async getComments(req, res) {
     try {
-      const itemId = req.params.id
-      const items = await CommentModel.find({ item: itemId })
+      const productId = req.params.id
+      const products = await CommentModel.find({ product: productId })
         .populate({
           path: "user",
           model: "User",
           select: ["fullName", "avatarUrl"],
         })
         .exec()
-      res.json(items)
+      res.json(products)
     } catch (err) {
       console.log(err)
       res.status(404).json({
@@ -70,7 +70,7 @@ class CommentsController {
     } catch (err) {
       console.log(err)
       res.status(500).json({
-        message: "Failed to update the item",
+        message: "Failed to update the comment",
       })
     }
   }
@@ -96,9 +96,10 @@ class CommentsController {
           }
         }
       )
-      await ItemModel.updateOne(
+
+      await ProductModel.updateOne(
         {
-          _id: req.body.item,
+          _id: req.body.product,
         },
         {
           $inc: {

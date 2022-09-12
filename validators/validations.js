@@ -31,10 +31,10 @@ export const postCreateValidation = [
     .isString(),
   body("tags", "bad tags format").optional().isArray(),
   body("imageUrl ", "bad image link").optional().isString(),
-  body("selectedItems", "bad items format").isArray(),
+  body("selectedProducts", "bad products format").isArray(),
 ]
 
-export const itemCreateValidation = [
+export const productCreateValidation = [
   body("title", "the title is missing")
     .isLength({
       min: 3,

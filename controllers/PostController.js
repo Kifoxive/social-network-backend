@@ -13,11 +13,10 @@ class PostController {
         imageUrl: req.body.imageUrl,
         tags: req.body.tags,
         user: req.userId,
-        selectedItems: req.body.selectedItems.map(([id, title]) => {
-          return { item: id, title }
+        selectedProducts: req.body.selectedProducts.map(([product]) => {
+          return { product }
         }),
       })
-
       const post = await doc.save()
       res.json(post)
     } catch (err) {
@@ -31,10 +30,11 @@ class PostController {
   async getMine(req, res) {
     try {
       const userId = req.userId
-      const items = await PostModel.find({ user: userId })
+      const products = await PostModel.find({ user: userId })
         .populate("user")
+        .populate("selectedProducts.product")
         .exec()
-      res.json(items)
+      res.json(products)
     } catch (err) {
       console.log(err)
       res.status(500).json({ message: "failed to get posts" })
@@ -43,7 +43,10 @@ class PostController {
 
   async getAll(req, res) {
     try {
-      const posts = await PostModel.find().populate("user").exec()
+      const posts = await PostModel.find()
+        .populate("user")
+        .populate("selectedProducts.product")
+        .exec()
       res.json(posts)
     } catch (err) {
       console.log(err)
@@ -86,7 +89,7 @@ class PostController {
         }
       )
         .populate("user")
-        .populate("selectedItems.item")
+        .populate("selectedProducts.product")
     } catch (err) {
       console.log(err)
       res.status(500).json({
@@ -108,8 +111,8 @@ class PostController {
           imageUrl: req.body.imageUrl,
           tags: req.body.tags,
           user: req.userId,
-          selectedItems: req.body.selectedItems.map(([id, title]) => {
-            return { item: id, title }
+          selectedProducts: req.body.selectedProducts.map(([product]) => {
+            return { product }
           }),
         }
       )
