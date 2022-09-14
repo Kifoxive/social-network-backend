@@ -6,6 +6,37 @@ import checkAuth from "../utils/checkAuth.js"
 import handleValidationErrors from "../utils/handleValidationErrors.js"
 import { commentCreateValidation } from "../validators/validations.js"
 
+function isOwner(req, res, next) {
+  const userId = req.userId
+  const commentId = req.params.id
+
+  CommentModel.findOne(
+    {
+      _id: commentId,
+    },
+    (err, doc) => {
+      if (err) {
+        console.log(err)
+        return res.status(500).json({
+          message: "Failed to get the comment",
+        })
+      }
+      if (!doc) {
+        return res.status(404).json({
+          message: "The comment did not found",
+        })
+      }
+      if (doc.user.toString() === userId) {
+        next()
+      } else {
+        return res.status(403).json({
+          message: "Bad comment owner",
+        })
+      }
+    }
+  )
+}
+
 class CommentsController {
   async createComment(req, res) {
     try {
@@ -43,7 +74,7 @@ class CommentsController {
         .populate({
           path: "user",
           model: "User",
-          select: ["fullName", "avatarUrl"],
+          select: ["fullName", "avatarUrl", "_id"],
         })
         .exec()
       res.json(products)
@@ -130,11 +161,12 @@ router.post(
 router.patch(
   "/:id",
   checkAuth,
+  isOwner,
   commentCreateValidation,
   handleValidationErrors,
   routerController.updateComment
 )
 router.get("/:id", routerController.getComments)
-router.delete("/:id", checkAuth, routerController.removeComment)
+router.delete("/:id", checkAuth, isOwner, routerController.removeComment)
 
 export default router

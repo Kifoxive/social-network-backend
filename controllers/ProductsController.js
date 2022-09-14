@@ -1,9 +1,41 @@
 import express from "express"
 
 import ProductModel from "../models/Product.js"
+import CommentModel from "../models/Comment.js"
+import PostModel from "../models/Post.js"
 import { productCreateValidation } from "../validators/validations.js"
 import { checkAuth, handleValidationErrors } from "../utils/index.js"
 
+function isOwner(req, res, next) {
+  const userId = req.userId
+  const productId = req.params.id
+
+  ProductModel.findOne(
+    {
+      _id: productId,
+    },
+    (err, doc) => {
+      if (err) {
+        console.log(err)
+        return res.status(500).json({
+          message: "Failed to get the product",
+        })
+      }
+      if (!doc) {
+        return res.status(404).json({
+          message: "The product did not found",
+        })
+      }
+      if (doc.user.toString() === userId) {
+        next()
+      } else {
+        return res.status(403).json({
+          message: "Bad product owner",
+        })
+      }
+    }
+  )
+}
 class ProductsController {
   async create(req, res) {
     try {
@@ -25,18 +57,6 @@ class ProductsController {
       })
     }
   }
-
-  // async getAll(req, res) {
-  //   try {
-  //     const products = await ProductModel.find().populate("user").exec()
-  //     res.json(products)
-  //   } catch (err) {
-  //     console.log(err)
-  //     res.status(500).json({
-  //       message: "Failed to get products",
-  //     })
-  //   }
-  // }
 
   async getMine(req, res) {
     const userId = req.userId
@@ -110,6 +130,7 @@ class ProductsController {
   async remove(req, res) {
     try {
       const productId = req.params.id
+
       ProductModel.findOneAndDelete(
         {
           _id: productId,
@@ -127,10 +148,40 @@ class ProductsController {
               message: "The product did not found",
             })
           }
-
-          res.json({ success: true })
         }
       )
+
+      // remove all comments of the product
+      CommentModel.deleteMany(
+        {
+          product: productId,
+        },
+        (err, doc) => {
+          if (err) {
+            console.log(err)
+            return res.status(500).json({
+              message: "Failed to remove the comment ",
+            })
+          }
+          if (!doc) {
+            return res.status(404).json({
+              message: "The comment did not found",
+            })
+          }
+        }
+      )
+
+      // remove this product in every post
+      await PostModel.updateMany(
+        {
+          ["selectedProducts.product"]: productId,
+        },
+        {
+          $pull: { selectedProducts: { product: productId } },
+        }
+      )
+
+      res.json({ success: true })
     } catch (err) {
       console.log(err)
       res.status(500).json({
@@ -150,17 +201,17 @@ router.post(
   handleValidationErrors,
   routerController.create
 )
-// router.get("/", routerController.getAll)
 // it is important to include getMine before getOne
 router.get("/mine", checkAuth, routerController.getMine)
 router.get("/:id", routerController.getOne)
 router.patch(
   "/:id",
   checkAuth,
+  isOwner,
   productCreateValidation,
   handleValidationErrors,
   routerController.update
 )
-router.delete("/:id", checkAuth, routerController.remove)
+router.delete("/:id", checkAuth, isOwner, routerController.remove)
 
 export default router

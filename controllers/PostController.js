@@ -4,6 +4,36 @@ import PostModel from "../models/Post.js"
 import { postCreateValidation } from "../validators/validations.js"
 import { checkAuth, handleValidationErrors } from "../utils/index.js"
 
+function isOwner(req, res, next) {
+  const userId = req.userId
+  const postId = req.params.id
+
+  PostModel.findOne(
+    {
+      _id: postId,
+    },
+    (err, doc) => {
+      if (err) {
+        console.log(err)
+        return res.status(500).json({
+          message: "Failed to get the post",
+        })
+      }
+      if (!doc) {
+        return res.status(404).json({
+          message: "The post did not found",
+        })
+      }
+      if (doc.user.toString() === userId) {
+        next()
+      } else {
+        return res.status(403).json({
+          message: "Bad post owner",
+        })
+      }
+    }
+  )
+}
 class PostController {
   async create(req, res) {
     try {
@@ -13,7 +43,7 @@ class PostController {
         imageUrl: req.body.imageUrl,
         tags: req.body.tags,
         user: req.userId,
-        selectedProducts: req.body.selectedProducts.map(([product]) => {
+        selectedProducts: req.body.selectedProducts.map((product) => {
           return { product }
         }),
       })
@@ -111,7 +141,7 @@ class PostController {
           imageUrl: req.body.imageUrl,
           tags: req.body.tags,
           user: req.userId,
-          selectedProducts: req.body.selectedProducts.map(([product]) => {
+          selectedProducts: req.body.selectedProducts.map((product) => {
             return { product }
           }),
         }
@@ -173,10 +203,11 @@ router.get("/:id", routerController.getOne)
 router.patch(
   "/:id",
   checkAuth,
+  isOwner,
   postCreateValidation,
   handleValidationErrors,
   routerController.update
 )
-router.delete("/:id", checkAuth, routerController.remove)
+router.delete("/:id", checkAuth, isOwner, routerController.remove)
 
 export default router
