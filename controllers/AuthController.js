@@ -9,7 +9,7 @@ import {
 } from "../validators/validations.js"
 import { checkAuth, handleValidationErrors } from "../utils/index.js"
 
-class UserController {
+class AuthController {
   async register(req, res) {
     try {
       const password = req.body.password
@@ -105,7 +105,7 @@ class UserController {
   }
 }
 
-const routerController = new UserController()
+const routerController = new AuthController()
 const router = express.Router()
 
 router.post(

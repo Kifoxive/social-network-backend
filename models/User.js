@@ -16,6 +16,14 @@ const UserSchema = new mongoose.Schema(
       required: true,
     },
     avatarUrl: String,
+    friends: [
+      {
+        friend: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      },
+    ],
   },
   {
     timestamps: true,

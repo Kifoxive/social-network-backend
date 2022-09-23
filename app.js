@@ -4,11 +4,12 @@ import mongoose from "mongoose"
 import cors from "cors"
 
 import {
-  UserController,
+  AuthController,
   PostController,
   UploadsController,
   ProductsController,
   CommentsController,
+  UsersController,
 } from "./controllers/index.js"
 
 mongoose
@@ -30,9 +31,10 @@ app.get("/", (req, res) => {
 
 app.use("/upload", UploadsController)
 app.use("/posts", PostController)
-app.use("/auth", UserController)
+app.use("/auth", AuthController)
 app.use("/products", ProductsController)
 app.use("/comments", CommentsController)
+app.use("/users", UsersController)
 
 app.listen(PORT, (err) => {
   if (err) console.log(err)

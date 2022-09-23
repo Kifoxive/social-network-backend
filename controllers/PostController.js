@@ -57,20 +57,6 @@ class PostController {
     }
   }
 
-  async getMine(req, res) {
-    try {
-      const userId = req.userId
-      const products = await PostModel.find({ user: userId })
-        .populate("user")
-        .populate("selectedProducts.product")
-        .exec()
-      res.json(products)
-    } catch (err) {
-      console.log(err)
-      res.status(500).json({ message: "failed to get posts" })
-    }
-  }
-
   async getAll(req, res) {
     try {
       const posts = await PostModel.find()
@@ -83,6 +69,20 @@ class PostController {
       res.status(500).json({
         message: "Failed to get posts",
       })
+    }
+  }
+
+  async getMine(req, res) {
+    try {
+      const userId = req.userId
+      const products = await PostModel.find({ user: userId })
+        .populate("user")
+        .populate("selectedProducts.product")
+        .exec()
+      res.json(products)
+    } catch (err) {
+      console.log(err)
+      res.status(500).json({ message: "failed to get posts" })
     }
   }
 
