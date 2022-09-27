@@ -1,8 +1,9 @@
 import express from "express"
 
-import PostModel from "../models/Post.js"
 import { postCreateValidation } from "../validators/validations.js"
 import { checkAuth, handleValidationErrors } from "../utils/index.js"
+import PostModel from "../models/Post.js"
+import UserModel from "../models/User.js"
 
 function isOwner(req, res, next) {
   const userId = req.userId
@@ -34,8 +35,11 @@ function isOwner(req, res, next) {
     }
   )
 }
+
 class PostController {
   async create(req, res) {
+    const userId = req.userId
+
     try {
       const doc = new PostModel({
         title: req.body.title,
@@ -48,7 +52,20 @@ class PostController {
         }),
       })
       const post = await doc.save()
-      res.json(post)
+
+      // increment users products count
+      await UserModel.updateOne(
+        {
+          _id: userId,
+        },
+        {
+          $inc: {
+            postsCount: 1,
+          },
+        }
+      )
+
+      res.json({ post })
     } catch (err) {
       console.log(err)
       res.status(500).json({
@@ -63,7 +80,7 @@ class PostController {
         .populate("user")
         .populate("selectedProducts.product")
         .exec()
-      res.json(posts)
+      res.json({ posts })
     } catch (err) {
       console.log(err)
       res.status(500).json({
@@ -75,11 +92,11 @@ class PostController {
   async getMine(req, res) {
     try {
       const userId = req.userId
-      const products = await PostModel.find({ user: userId })
+      const posts = await PostModel.find({ user: userId })
         .populate("user")
         .populate("selectedProducts.product")
         .exec()
-      res.json(products)
+      res.json({ posts })
     } catch (err) {
       console.log(err)
       res.status(500).json({ message: "failed to get posts" })
@@ -115,7 +132,7 @@ class PostController {
               message: "The post did not found",
             })
           }
-          res.json(doc)
+          res.json({ post: doc })
         }
       )
         .populate("user")
@@ -158,6 +175,8 @@ class PostController {
   async remove(req, res) {
     try {
       const postId = req.params.id
+      const userId = req.userId
+
       PostModel.findOneAndDelete(
         {
           _id: postId,
@@ -175,6 +194,18 @@ class PostController {
             })
           }
           res.json({ success: true })
+        }
+      )
+
+      // decrement users products count
+      await UserModel.updateOne(
+        {
+          _id: userId,
+        },
+        {
+          $inc: {
+            postsCount: -1,
+          },
         }
       )
     } catch (err) {

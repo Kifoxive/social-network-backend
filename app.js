@@ -5,7 +5,7 @@ import cors from "cors"
 
 import {
   AuthController,
-  PostController,
+  PostsController,
   UploadsController,
   ProductsController,
   CommentsController,
@@ -30,7 +30,7 @@ app.get("/", (req, res) => {
 })
 
 app.use("/upload", UploadsController)
-app.use("/posts", PostController)
+app.use("/posts", PostsController)
 app.use("/auth", AuthController)
 app.use("/products", ProductsController)
 app.use("/comments", CommentsController)

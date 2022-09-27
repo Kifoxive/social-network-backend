@@ -1,10 +1,11 @@
 import express from "express"
 
+import { productCreateValidation } from "../validators/validations.js"
+import { checkAuth, handleValidationErrors } from "../utils/index.js"
 import ProductModel from "../models/Product.js"
 import CommentModel from "../models/Comment.js"
 import PostModel from "../models/Post.js"
-import { productCreateValidation } from "../validators/validations.js"
-import { checkAuth, handleValidationErrors } from "../utils/index.js"
+import UserModel from "../models/User.js"
 
 function isOwner(req, res, next) {
   const userId = req.userId
@@ -38,18 +39,32 @@ function isOwner(req, res, next) {
 }
 class ProductsController {
   async create(req, res) {
+    const userId = req.userId
     try {
       const doc = new ProductModel({
         title: req.body.title,
         text: req.body.text,
         imageUrl: req.body.imageUrl,
         tags: req.body.tags,
-        user: req.userId,
+        user: userId,
         price: req.body.price,
         currency: req.body.currency,
       })
       const product = await doc.save()
-      res.json(product)
+
+      // increment users products count
+      await UserModel.updateOne(
+        {
+          _id: userId,
+        },
+        {
+          $inc: {
+            productsCount: 1,
+          },
+        }
+      )
+
+      res.json({ product })
     } catch (err) {
       console.log(err)
       res.status(500).json({
@@ -92,7 +107,7 @@ class ProductsController {
               message: "The product did not found",
             })
           }
-          res.json(doc)
+          res.json({ product: doc })
         }
       ).populate("user")
     } catch (err) {
@@ -130,6 +145,7 @@ class ProductsController {
   async remove(req, res) {
     try {
       const productId = req.params.id
+      const userId = req.userId
 
       ProductModel.findOneAndDelete(
         {
@@ -178,6 +194,18 @@ class ProductsController {
         },
         {
           $pull: { selectedProducts: { product: productId } },
+        }
+      )
+
+      // decrement users products count
+      await UserModel.updateOne(
+        {
+          _id: userId,
+        },
+        {
+          $inc: {
+            productsCount: -1,
+          },
         }
       )
 

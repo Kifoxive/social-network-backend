@@ -24,6 +24,18 @@ const UserSchema = new mongoose.Schema(
         },
       },
     ],
+    aboutMe: {
+      type: String,
+      default: "Hello",
+    },
+    postsCount: {
+      type: Number,
+      default: 0,
+    },
+    productsCount: {
+      type: Number,
+      default: 0,
+    },
   },
   {
     timestamps: true,

@@ -9,6 +9,8 @@ export const registerValidation = [
     min: 3,
   }),
   body("avatarUrl", "bad avatar link ").optional().isURL(),
+  body("aboutMe", "bad about me ").optional().isString(),
+  body("friends", "bad friends format").optional().isArray(),
 ]
 
 export const loginValidation = [
