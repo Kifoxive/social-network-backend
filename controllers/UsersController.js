@@ -3,8 +3,6 @@ import express from "express"
 import UserModel from "../models/User.js"
 import ProductModel from "../models/Product.js"
 import PostModel from "../models/Post.js"
-import { registerValidation } from "../validators/validations.js"
-import checkAuth from "../utils/checkAuth.js"
 
 class UsersController {
   async getAll(req, res) {
@@ -20,9 +18,8 @@ class UsersController {
   }
 
   async getOne(req, res) {
-    const userId = req.params.id
     try {
-      const users = await UserModel.findOne({ _id: userId })
+      const users = await UserModel.findById(req.params.id)
         .select(["-passwordHash", "-__v"])
         .exec()
       res.json(users)
@@ -64,9 +61,8 @@ class UsersController {
   }
 
   async getUsersFriends(req, res) {
-    const userId = req.params.id
     try {
-      const friends = await UserModel.findOne({ _id: userId })
+      const friends = await UserModel.findById(req.params.id)
         .select("friends")
         .exec()
       res.json({ result: friends })
@@ -91,24 +87,6 @@ class UsersController {
       res.status(500).json({ message: "Failed to find users" })
     }
   }
-
-  async updateProfile(req, res) {
-    const userId = req.userId
-    try {
-      await UserModel.findOneAndUpdate(
-        { _id: userId },
-        {
-          aboutMe: req.body.aboutMe,
-          email: req.body.email,
-          fullName: req.body.fullName,
-          avatarUrl: req.body.avatarUrl,
-        }
-      )
-      res.json({ _id: userId })
-    } catch (err) {
-      res.status(500).json({ message: "failed to update user" })
-    }
-  }
 }
 
 const routerController = new UsersController()
@@ -120,11 +98,5 @@ router.get("/:id/posts", routerController.getUsersPosts)
 router.get("/:id/products", routerController.getUsersProducts)
 router.get("/:id/friends", routerController.getUsersFriends)
 router.get("/:id", routerController.getOne)
-router.patch(
-  "/update",
-  checkAuth,
-  registerValidation,
-  routerController.updateProfile
-)
 
 export default router
