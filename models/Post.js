@@ -1,4 +1,4 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
 const PostSchema = new mongoose.Schema(
   {
@@ -26,19 +26,18 @@ const PostSchema = new mongoose.Schema(
     },
     selectedProducts: [
       {
-        product: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Product",
-          required: true,
-        },
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product",
+        required: true,
       },
+      ,
     ],
     imageUrl: String,
   },
   {
     timestamps: true,
   }
-)
+);
 
-const PostModel = mongoose.model("Post", PostSchema)
-export default PostModel
+const PostModel = mongoose.model("Post", PostSchema);
+export default PostModel;

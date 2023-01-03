@@ -1,7 +1,8 @@
-import express from "express"
-import config from "config"
-import mongoose from "mongoose"
-import cors from "cors"
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import { config } from "dotenv";
+import errorMiddleware from "./middlewares/error-middleware.js";
 
 import {
   AuthController,
@@ -10,33 +11,49 @@ import {
   ProductsController,
   CommentsController,
   UsersController,
-} from "./controllers/index.js"
+} from "./controllers/index.js";
+import cookieParser from "cookie-parser";
 
-mongoose
-  .connect(
-    "mongodb+srv://admin:12345@clusterzero.qjqiloq.mongodb.net/network?retryWrites=true&w=majority"
-  )
-  .then(() => console.log("DB ok"))
-  .catch((err) => console.log("DB error", err))
+config();
+const PORT = process.env.PORT || 3001;
 
-const app = express()
-const PORT = config.get("port") || 3001
-
-app.use(express.json())
-app.use(cors())
+const app = express();
+app.use(express.json());
+app.use(cookieParser());
+app.use(
+  cors({
+    credentials: true,
+    origin: process.env.CLIENT_URL,
+  })
+);
 
 app.get("/", (req, res) => {
-  res.send(`Server on port ${PORT}`)
-})
+  res.send(`Server on port ${PORT}`);
+});
+app.use("/auth", AuthController);
+app.use("/posts", PostsController);
+app.use("/upload", UploadsController);
+app.use("/products", ProductsController);
+app.use("/comments", CommentsController);
+app.use("/users", UsersController);
 
-app.use("/upload", UploadsController)
-app.use("/posts", PostsController)
-app.use("/auth", AuthController)
-app.use("/products", ProductsController)
-app.use("/comments", CommentsController)
-app.use("/users", UsersController)
+app.use(errorMiddleware);
 
-app.listen(PORT, (err) => {
-  if (err) console.log(err)
-  console.log(`App server OK ${PORT}`)
-})
+const start = async () => {
+  try {
+    await mongoose
+      .connect(process.env.DB_URL, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      })
+      .then(() => console.log("Connected to database"));
+    app.listen(PORT, function () {
+      console.log("Started application on port %d", 3001);
+    });
+  } catch (e) {
+    console.log(e);
+    res.status(500).send(`Some error occured: ${e}`);
+  }
+};
+
+start();

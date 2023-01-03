@@ -1,115 +1,95 @@
-import express from "express"
+import express from "express";
 
-import jwt from "jsonwebtoken"
-import bcrypt from "bcrypt"
-import UserModel from "../models/User.js"
+import bcrypt from "bcrypt";
+import UserModel from "../models/User.js";
 import {
   registerValidation,
   loginValidation,
-} from "../validators/validations.js"
-import { checkAuth, handleValidationErrors } from "../utils/index.js"
+} from "../validators/validations.js";
+import { checkAuth, handleValidationErrors } from "../middlewares/index.js";
+import ApiError from "../exceptions/api-error.js";
+import userService from "../service/user-service.js";
+import UserDto from "../dtos/user-dto.js";
 
 class AuthController {
-  async register(req, res) {
+  async register(req, res, next) {
     try {
-      const password = req.body.password
-      const salt = await bcrypt.genSalt(10)
-      const hash = await bcrypt.hash(password, salt)
+      const { email, password, fullName, avatarUrl } = req.body;
+      const userData = await userService.registration(
+        email,
+        password,
+        fullName,
+        avatarUrl
+      );
 
-      const doc = new UserModel({
-        email: req.body.email,
-        fullName: req.body.fullName,
-        avatarUrl: req.body.avatarUrl,
-        passwordHash: hash,
-      })
+      const { refreshToken, ...data } = userData;
+      res.cookie("refreshToken", refreshToken, {
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        httpOnly: true,
+      });
 
-      const user = await doc.save()
-
-      const token = jwt.sign(
-        {
-          _id: user._id,
-        },
-        "secret123",
-        {
-          expiresIn: "30d",
-        }
-      )
-
-      const { passwordHash, ...userData } = user._doc
-
-      res.json({
-        ...userData,
-        token,
-      })
+      res.status(201).json(data);
     } catch (err) {
-      console.log(err)
-      res.status(500).json({ message: "Failed to register" })
+      next(err);
     }
   }
 
-  async login(req, res) {
+  async login(req, res, next) {
     try {
-      const user = await UserModel.findOne({ email: req.body.email })
+      const { email, password } = req.body;
+      const { refreshToken, ...authUserData } = await userService.login(
+        email,
+        password
+      );
 
+      res.cookie("refreshToken", refreshToken, {
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        httpOnly: true,
+      });
+
+      return res.json(authUserData);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  async refresh(req, res, next) {
+    try {
+      const oldRefreshToken = req.cookies.refreshToken;
+
+      const { refreshToken, ...authUserData } = await userService.refresh(
+        oldRefreshToken
+      );
+      res.cookie("refreshToken", refreshToken, {
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+        httpOnly: true,
+      });
+      return res.json(authUserData);
+    } catch (e) {
+      next(e);
+    }
+  }
+
+  async getMe(req, res, next) {
+    try {
+      const user = await UserModel.findById(req.userId);
       if (!user) {
-        return res.status(404).json({ message: "User not found " })
+        next(ApiError.NotFound("The user not found"));
       }
 
-      const isValidPass = await bcrypt.compare(
-        req.body.password,
-        user._doc.passwordHash
-      )
-
-      if (!isValidPass) {
-        return res.status(400).json({ message: "Bad login or password" })
-      }
-
-      const token = jwt.sign(
-        {
-          _id: user._id,
-        },
-        "secret123",
-        {
-          expiresIn: "30d",
-        }
-      )
-
-      const { passwordHash, ...userData } = user._doc
-
+      const userDto = new UserDto(user);
       res.json({
-        ...userData,
-        token,
-      })
+        ...userDto,
+      });
     } catch (err) {
-      console.log(err)
-      res.status(500).json({ message: "Failed registration" })
+      next(err);
     }
   }
 
-  async getMe(req, res) {
+  async updateProfile(req, res, next) {
+    const userId = req.userId;
     try {
-      const user = await UserModel.findById(req.userId)
-
-      if (!user) {
-        return res.status(404).json({
-          message: "User not found",
-        })
-      }
-
-      const { passwordHash, ...userData } = user._doc
-
-      res.json({
-        ...userData,
-      })
-    } catch (err) {
-      res.status(500).json({ message: "Failed to get my credentials" })
-    }
-  }
-
-  async updateProfile(req, res) {
-    const userId = req.userId
-    try {
-      const { fullName, email, aboutMe, avatarUrl } = req.body
+      const { fullName, email, aboutMe, avatarUrl } = req.body;
 
       const user = await UserModel.findByIdAndUpdate(
         userId,
@@ -122,87 +102,98 @@ class AuthController {
         {
           returnOriginal: false,
         }
-      )
+      );
 
-      await user.save()
-      const { passwordHash, ...userData } = user._doc
+      await user.save();
+      const { passwordHash, ...userData } = user._doc;
 
-      res.json({ ...userData })
+      res.json({ ...userData });
     } catch (err) {
-      res.status(500).json({ message: "failed to update user" })
+      next(err);
     }
   }
 
-  async changePassword(req, res) {
-    const user = await UserModel.findById(req.userId)
+  async changePassword(req, res, next) {
+    const user = await UserModel.findById(req.userId);
 
-    const { password, newPassword1, newPassword2 } = req.body
+    const { password, newPassword1, newPassword2 } = req.body;
     if (newPassword1 !== newPassword2) {
-      return res.status(400).json({ message: "Passwords are not equal" })
+      return next(ApiError.BadRequest("Passwords are not equal"));
     }
 
-    const isValidPass = await bcrypt.compare(password, user._doc.passwordHash)
+    const isValidPass = await bcrypt.compare(password, user._doc.passwordHash);
     if (!isValidPass) {
-      return res.status(400).json({ message: "Bad login or password" })
+      return next(ApiError.UnauthorizedError("Bad old password"));
     }
 
-    const salt = await bcrypt.genSalt(10)
-    const hash = await bcrypt.hash(newPassword2, salt)
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(newPassword2, salt);
 
-    user.passwordHash = hash
-    await user.save()
-    const { passwordHash, ...userData } = user._doc
+    user.passwordHash = hash;
+    await user.save();
 
-    const token = jwt.sign(
-      {
-        _id: user._id,
-      },
-      "secret123",
-      {
-        expiresIn: "30d",
-      }
-    )
-
-    res.json({
-      ...userData,
-      token,
-    })
+    res.json({ message: "Success" });
     try {
     } catch (err) {
-      res.status(500).json({ message: "Failed to update password" })
+      next(err);
+    }
+  }
+
+  async logout(req, res, next) {
+    try {
+      const { refreshToken } = req.cookies;
+      await userService.logout(refreshToken);
+      res.clearCookie("refreshToken");
+
+      return res.sendStatus(200);
+    } catch (e) {
+      next(e);
+    }
+  }
+
+  async activate(req, res, next) {
+    try {
+      const activationLink = req.params.link;
+      await userService.activate(activationLink);
+      return res.redirect(302, process.env.CLIENT_URL);
+    } catch (e) {
+      next(e);
     }
   }
 }
 
-const routerController = new AuthController()
-const router = express.Router()
+const routerController = new AuthController();
+const router = express.Router();
 
 router.post(
   "/register",
   registerValidation,
   handleValidationErrors,
   routerController.register
-)
+);
 router.post(
   "/login",
   loginValidation,
   handleValidationErrors,
   routerController.login
-)
-router.get("/me", checkAuth, routerController.getMe)
+);
+router.get("/me", checkAuth, routerController.getMe);
 router.patch(
   "/update",
   checkAuth,
   registerValidation,
   handleValidationErrors,
   routerController.updateProfile
-)
+);
 router.patch(
   "/change-password",
   checkAuth,
   registerValidation,
   handleValidationErrors,
   routerController.changePassword
-)
+);
+router.get("/refresh", routerController.refresh);
+router.post("/logout", checkAuth, routerController.logout);
+router.get("/activate/:linkId", routerController.activate);
 
-export default router
+export default router;

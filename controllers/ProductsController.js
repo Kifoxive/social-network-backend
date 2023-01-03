@@ -1,45 +1,41 @@
-import express from "express"
+import express from "express";
 
-import { productCreateValidation } from "../validators/validations.js"
-import { checkAuth, handleValidationErrors } from "../utils/index.js"
-import ProductModel from "../models/Product.js"
-import CommentModel from "../models/Comment.js"
-import PostModel from "../models/Post.js"
-import UserModel from "../models/User.js"
+import { productCreateValidation } from "../validators/validations.js";
+import { checkAuth, handleValidationErrors } from "../middlewares/index.js";
+import ProductModel from "../models/Product.js";
+import CommentModel from "../models/Comment.js";
+import PostModel from "../models/Post.js";
+import UserModel from "../models/User.js";
+import ProductDto from "../dtos/product-dto.js";
 
 function isOwner(req, res, next) {
-  const userId = req.userId
-  const productId = req.params.id
+  const userId = req.userId;
+  const productId = req.params.id;
 
-  ProductModel.findOne(
-    {
-      _id: productId,
-    },
-    (err, doc) => {
-      if (err) {
-        console.log(err)
-        return res.status(500).json({
-          message: "Failed to get the product",
-        })
-      }
-      if (!doc) {
-        return res.status(404).json({
-          message: "The product did not found",
-        })
-      }
-      if (doc.user.toString() === userId) {
-        next()
-      } else {
-        return res.status(403).json({
-          message: "Bad product owner",
-        })
-      }
+  ProductModel.findOne(productId, (err, doc) => {
+    if (err) {
+      console.log(err);
+      return res.status(500).json({
+        message: "Failed to get the product",
+      });
     }
-  )
+    if (!doc) {
+      return res.status(404).json({
+        message: "The product did not found",
+      });
+    }
+    if (doc.user.toString() === userId) {
+      next();
+    } else {
+      return res.status(403).json({
+        message: "Bad product owner",
+      });
+    }
+  });
 }
 class ProductsController {
   async create(req, res) {
-    const userId = req.userId
+    const userId = req.userId;
     try {
       const doc = new ProductModel({
         title: req.body.title,
@@ -49,8 +45,8 @@ class ProductsController {
         user: userId,
         price: req.body.price,
         currency: req.body.currency,
-      })
-      const product = await doc.save()
+      });
+      const product = await doc.save();
 
       // increment users products count
       await UserModel.updateOne(
@@ -62,65 +58,57 @@ class ProductsController {
             productsCount: 1,
           },
         }
-      )
+      );
 
-      res.json({ product })
+      res.json({ id: product._id });
     } catch (err) {
-      console.log(err)
+      console.log(err);
       res.status(500).json({
         message: "Failed to create product",
-      })
+      });
     }
   }
 
   async getMine(req, res) {
-    const userId = req.userId
+    const userId = req.userId;
     try {
-      const products = await ProductModel.find({ user: userId })
+      await ProductModel.find({ user: userId })
+        .sort({ createdAt: -1 })
         .populate("user")
-        .exec()
-      res.json({ products })
+        .exec((err, doc) => {
+          const result = doc.map((item) => new ProductDto(item));
+          res.json({ products: result });
+        });
     } catch (err) {
-      console.log(err)
+      console.log(err);
       res.status(500).json({
         message: "Failed to get products",
-      })
+      });
     }
   }
 
   async getOne(req, res) {
     try {
-      const productId = req.params.id
-      ProductModel.findOne(
-        {
-          _id: productId,
-        },
-        (err, doc) => {
-          if (err) {
-            console.log(err)
-            return res.status(500).json({
-              message: "Failed to get the product",
-            })
-          }
-          if (!doc) {
-            return res.status(404).json({
-              message: "The product did not found",
-            })
-          }
-          res.json({ product: doc })
-        }
-      ).populate("user")
+      const productId = req.params.id;
+      ProductModel.findOne({
+        _id: productId,
+      })
+        .populate("user")
+        .exec((err, doc) => {
+          const product = new ProductDto(doc);
+          res.json({ product });
+        });
     } catch (err) {
-      console.log(err)
+      console.log(err);
       res.status(500).json({
         message: "Failed to get the product",
-      })
+      });
     }
   }
 
   async update(req, res) {
     try {
-      const productId = req.params.id
+      const productId = req.params.id;
       await ProductModel.updateOne(
         {
           _id: productId,
@@ -130,22 +118,22 @@ class ProductsController {
           text: req.body.text,
           imageUrl: req.body.imageUrl,
           tags: req.body.tags,
-          user: req.userId,
+          price: req.body.price,
         }
-      )
-      res.json({ _id: productId })
+      );
+      res.json({ id: productId });
     } catch (err) {
-      console.log(err)
+      console.log(err);
       res.status(500).json({
         message: "Failed to update the product",
-      })
+      });
     }
   }
 
   async remove(req, res) {
     try {
-      const productId = req.params.id
-      const userId = req.userId
+      const productId = req.params.id;
+      const userId = req.userId;
 
       ProductModel.findOneAndDelete(
         {
@@ -153,19 +141,19 @@ class ProductsController {
         },
         (err, doc) => {
           if (err) {
-            console.log(err)
+            console.log(err);
             return res.status(500).json({
               message: "Failed to delete the product ",
-            })
+            });
           }
 
           if (!doc) {
             return res.status(404).json({
               message: "The product did not found",
-            })
+            });
           }
         }
-      )
+      );
 
       // remove all comments of the product
       CommentModel.deleteMany(
@@ -174,18 +162,18 @@ class ProductsController {
         },
         (err, doc) => {
           if (err) {
-            console.log(err)
+            console.log(err);
             return res.status(500).json({
               message: "Failed to remove the comment ",
-            })
+            });
           }
           if (!doc) {
             return res.status(404).json({
               message: "The comment did not found",
-            })
+            });
           }
         }
-      )
+      );
 
       // remove this product in every post
       await PostModel.updateMany(
@@ -195,7 +183,7 @@ class ProductsController {
         {
           $pull: { selectedProducts: { product: productId } },
         }
-      )
+      );
 
       // decrement users products count
       await UserModel.updateOne(
@@ -207,20 +195,20 @@ class ProductsController {
             productsCount: -1,
           },
         }
-      )
+      );
 
-      res.json({ success: true })
+      res.json({ success: true });
     } catch (err) {
-      console.log(err)
+      console.log(err);
       res.status(500).json({
         message: "Failed to remove the product",
-      })
+      });
     }
   }
 }
 
-const routerController = new ProductsController()
-const router = express.Router()
+const routerController = new ProductsController();
+const router = express.Router();
 
 router.post(
   "/",
@@ -228,10 +216,10 @@ router.post(
   productCreateValidation,
   handleValidationErrors,
   routerController.create
-)
+);
 // it is important to include getMine before getOne
-router.get("/mine", checkAuth, routerController.getMine)
-router.get("/:id", routerController.getOne)
+router.get("/mine", checkAuth, routerController.getMine);
+router.get("/:id", routerController.getOne);
 router.patch(
   "/:id",
   checkAuth,
@@ -239,7 +227,7 @@ router.patch(
   productCreateValidation,
   handleValidationErrors,
   routerController.update
-)
-router.delete("/:id", checkAuth, isOwner, routerController.remove)
+);
+router.delete("/:id", checkAuth, isOwner, routerController.remove);
 
-export default router
+export default router;
